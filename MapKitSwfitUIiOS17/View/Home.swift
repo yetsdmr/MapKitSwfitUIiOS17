@@ -12,13 +12,16 @@ struct Home: View {
     // Map Properties
     @State private var cameraPosition: MapCameraPosition = .region (.myRegion)
     @Namespace private var locationSpace
+    @State private var mapSelection: MKMapItem?
     // Search Properties
     @State private var searchText: String = ""
     @State private var showSearch: Bool = false
     @State private var searchResults: [MKMapItem] = []
+    // Map Selection Detail Properties
+    @State private var showDetails: Bool = false
     var body: some View {
         NavigationStack {
-            Map(position: $cameraPosition, scope: locationSpace) {
+            Map(position: $cameraPosition, selection: $mapSelection, scope: locationSpace) {
                 // Map Annotations
                 Annotation ("Apple Park", coordinate: .myLocation) {
                     ZStack {
@@ -34,7 +37,8 @@ struct Home: View {
                 // Simply Display Annotations as Marker, as we seen before
                 ForEach(searchResults, id: \.self) { mapItem in
                     let placemark = mapItem.placemark
-                    Marker (placemark.name ?? "Place", coordinate: placemark.coordinate)
+                    Marker(placemark.name ?? "Place", coordinate: placemark.coordinate)
+                        .tint(.blue)
                 }
                 
                 // To Show User Current Location
@@ -57,6 +61,15 @@ struct Home: View {
             // Showing Trasnlucent ToolBar
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbarBackground(.ultraThinMaterial,for:.navigationBar)
+            .sheet(isPresented: $showDetails) {
+                
+            } content: {
+                MapDetails()
+                    .presentationDetents ([.height(300)])
+                    .presentationBackgroundInteraction(.enabled(upThrough: .height(300)))
+                    .presentationCornerRadius(25)
+                    .interactiveDismissDisabled(true)
+            }
         }
         .onSubmit(of: .search) {
             Task {
@@ -65,6 +78,26 @@ struct Home: View {
                 await searchPlaces()
             }
         }
+        .onChange(of: showSearch, initial: false) {
+            if !showSearch {
+                // Clearing Search Results
+                searchResults.removeAll(keepingCapacity: false)
+                showDetails = false
+            }
+        }
+        .onChange(of: mapSelection) { oldValue, newValue in
+            // Displaying Details about the Selected Place
+            showDetails = newValue != nil
+        }
+    }
+    
+    // Map Details View
+    @ViewBuilder
+    func MapDetails() -> some View {
+        VStack(spacing: 15) {
+            // New Look Around API
+        }
+        .padding(15)
     }
     
     // Search Places
